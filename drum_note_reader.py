@@ -1,7 +1,7 @@
 from utils.brick import Motor, TouchSensor, TouchSensor
 from utils import sound
 import time
-from multiprocessing import Process
+from multiprocessing import Process, Thread
 import os
 
 touch1 = TouchSensor(1)
@@ -54,45 +54,61 @@ def play_drum(drum):
         print("Invalid character")
         
 def play_drums():
-    global drum_pattern
-    notes = drum_pattern
     #string of notes representing kicks and claps
-    for character in notes:
+    for character in drum_pattern:
         play_drum(character)
         #play_note(flute_note)
     play_drums()
-    
+
+flutes = [
+    touch1,
+    touch2,
+    touch3,
+    touch4
+]
+value_map = {
+    "1111":"toggle",
+    "0000":"none",
+    "0001":"A4",
+    "0010":"D5",
+    "0011":"B4",
+    "0100":"Gb5",
+    "0101":"Gb5",
+    "0110":"E5",
+    "0111":"E5",
+    "1000":"A5",
+    "1001":"A5",
+    "1010":"A5",
+    "1011":"A5",
+    "1100":"G5",
+    "1101":"G5",
+    "1110":"G5"
+}
+def readFlute(is_pressed, index):
+    is_pressed[index] = flutes[index].is_pressed()
+
 def drive_flute():
-    t1 = ("1" if touch1.is_pressed() else "0")
-    t2 = ("1" if touch2.is_pressed() else "0")
-    t3 = ("1" if touch3.is_pressed() else "0")
-    t4 = ("1" if touch4.is_pressed() else "0")
-    flute_input = str(t1) + str(t2) + str(t3) + str(t4)
-    value_map = {"1111":"toggle",
-                 "0000":"none",
-                 "0001":"A4",
-                 "0010":"D5",
-                 "0011":"B4",
-                 "0100":"Gb5",
-                 "0101":"Gb5",
-                 "0110":"E5",
-                 "0111":"E5",
-                 "1000":"A5",
-                 "1001":"A5",
-                 "1010":"A5",
-                 "1011":"A5",
-                 "1100":"G5",
-                 "1101":"G5",
-                 "1110":"G5"}
-    note = value_map[flute_input]
-    global note_duration
+    # Setting up lists for threads and their return values
+    is_pressed = [None] * len(flutes)
+    threads = [None] * len(flutes)
+
+    # Starting a thread for each input
+    for i in range(0, len(flutes)):
+        threads[i] = Thread(target=readFlute, args=(is_pressed, i))
+        threads[i].start()
+    # Merging the threads back into main branch
+    # is_pressed is now updated
+    for i in range(0, len(flutes)):
+        threads[i].join()
+    code = "".join(list(map(str, list(map(int, is_pressed)))))
+    print(code)
+
+    note = value_map[code]
     if note == "none" or note == "toggle":
         time.sleep(note_duration)
         if note == "toggle": return
         drive_flute()
-    global flute_vol
     print(note)
-    global note_hold_extra_time
     SOUND = sound.Sound(duration=note_hold_extra_time*note_duration, pitch=note, volume=flute_vol )
     SOUND.play()
     time.sleep(note_duration)
