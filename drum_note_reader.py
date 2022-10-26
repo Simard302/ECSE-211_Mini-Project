@@ -2,7 +2,8 @@ import code
 from utils.brick import Motor, TouchSensor, TouchSensor
 from utils import sound
 import time
-from multiprocessing import Process, Thread
+from multiprocessing import Process
+from threading import Thread
 import os
 
 touch1 = TouchSensor(1)
@@ -13,7 +14,9 @@ kick = Motor("A")
 clap = Motor("B")
 bpm_setter = Motor("C")
 
-REFRESH_RATE = 0.05
+REFRESH_RATE_FREE = 0.05
+REFRESH_RATE_HOLD = 0.5
+HOLD_TIME = 1
 
 hit_factor = 4 #(min 1.0)
 flute_vol = 90
@@ -36,8 +39,6 @@ def play_drum(drum):
     if(BPM>=200):
         BPM=200
         
-    print(BPM)
-        
     SPEED = BPM*6*hit_factor
     
     kick.set_limits(KICK_POWER, SPEED) #set limit of lower value between max power and speed of kick motor
@@ -54,22 +55,6 @@ def play_drum(drum):
         time.sleep(360*hit_factor/SPEED)
     else:
         print("Invalid character")
-
-def play_drums_loop():
-    on = False
-    if (touch1.is_pressed() and touch2.is_pressed() and touch3.is_pressed()):
-        on = True
-    if on:
-        #string of notes representing kicks and claps
-        for character in drum_pattern:
-            play_drum(character)
-            #play_note(flute_note)
-        play_drums()
-    else:
-        if (touch1.is_pressed() and touch2.is_pressed() and touch3.is_pressed()):
-            on = True
-            time.sleep(1)
-    play_drums_loop()
 
         
 def play_drums():
@@ -111,7 +96,7 @@ def readFlute():
 
     # Starting a thread for each input
     for i in range(0, len(flutes)):
-        threads[i] = Thread(target=readFlute, args=(is_pressed, i))
+        threads[i] = Thread(target=readButton, args=(is_pressed, i))
         threads[i].start()
     # Merging the threads back into main branch
     # is_pressed is now updated
@@ -133,17 +118,19 @@ if __name__ == "__main__":
                 else:
                     # Start drum process
                     drumProc.start()
+                    time.sleep(HOLD_TIME)
             elif code == "0000":
-                time.sleep(REFRESH_RATE)
+                time.sleep(REFRESH_RATE_FREE)
             else:
                 # play flute sounds
+                print(code)
                 SOUND = sound.Sound(
                     duration=note_hold_extra_time*note_duration, 
                     pitch=value_map[code], 
                     volume=flute_vol
                 )
                 SOUND.play()
-                time.sleep(note_duration)
+                time.sleep(max((60/BPM), note_duration))
     except BaseException as e:
         print(str(e))
         if drumProc.is_alive(): drumProc.kill()
