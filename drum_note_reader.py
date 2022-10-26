@@ -1,3 +1,4 @@
+import code
 from utils.brick import Motor, TouchSensor, TouchSensor
 from utils import sound
 import time
@@ -12,6 +13,7 @@ kick = Motor("A")
 clap = Motor("B")
 bpm_setter = Motor("C")
 
+REFRESH_RATE = 0.05
 
 hit_factor = 4 #(min 1.0)
 flute_vol = 90
@@ -52,6 +54,23 @@ def play_drum(drum):
         time.sleep(360*hit_factor/SPEED)
     else:
         print("Invalid character")
+
+def play_drums_loop():
+    on = False
+    if (touch1.is_pressed() and touch2.is_pressed() and touch3.is_pressed()):
+        on = True
+    if on:
+        #string of notes representing kicks and claps
+        for character in drum_pattern:
+            play_drum(character)
+            #play_note(flute_note)
+        play_drums()
+    else:
+        if (touch1.is_pressed() and touch2.is_pressed() and touch3.is_pressed()):
+            on = True
+            time.sleep(1)
+    play_drums_loop()
+
         
 def play_drums():
     #string of notes representing kicks and claps
@@ -67,8 +86,6 @@ flutes = [
     touch4
 ]
 value_map = {
-    "1111":"toggle",
-    "0000":"none",
     "0001":"A4",
     "0010":"D5",
     "0011":"B4",
@@ -84,10 +101,10 @@ value_map = {
     "1101":"G5",
     "1110":"G5"
 }
-def readFlute(is_pressed, index):
+def readButton(is_pressed, index):
     is_pressed[index] = flutes[index].is_pressed()
 
-def drive_flute():
+def readFlute():
     # Setting up lists for threads and their return values
     is_pressed = [None] * len(flutes)
     threads = [None] * len(flutes)
@@ -100,40 +117,34 @@ def drive_flute():
     # is_pressed is now updated
     for i in range(0, len(flutes)):
         threads[i].join()
-    code = "".join(list(map(str, list(map(int, is_pressed)))))
-    print(code)
-
-    note = value_map[code]
-    if note == "none" or note == "toggle":
-        time.sleep(note_duration)
-        if note == "toggle": return
-        drive_flute()
-    print(note)
-    SOUND = sound.Sound(duration=note_hold_extra_time*note_duration, pitch=note, volume=flute_vol )
-    SOUND.play()
-    time.sleep(note_duration)
-    drive_flute()
+    return "".join(list(map(str, list(map(int, is_pressed)))))
     
 if __name__ == "__main__":
+    drumProc = Process(target = play_drums)
     try:
-        p2 = Process(target = play_drums)
-        p2.start()
-        p1 = Process(target = drive_flute)
-        p1.start()
-        t1 = ("1" if touch1.is_pressed() else "0")
-        t2 = ("1" if touch2.is_pressed() else "0")
-        t3 = ("1" if touch3.is_pressed() else "0")
-        t4 = ("1" if touch4.is_pressed() else "0")
-        while (t1+t2+t3+t4 != "1111"):
-            t1 = ("1" if touch1.is_pressed() else "0")
-            t2 = ("1" if touch2.is_pressed() else "0")
-            t3 = ("1" if touch3.is_pressed() else "0")
-            t4 = ("1" if touch4.is_pressed() else "0")
-            continue
-        raise BaseException
-        #os.sys('ps aux | grep "^python3 -m thonny" | kill')
+        while True:
+            code = readFlute()
+
+            if code == "1111":
+                if drumProc.is_alive():
+                    # kill drum processes, break
+                    drumProc.kill()
+                    break
+                else:
+                    # Start drum process
+                    drumProc.start()
+            elif code == "0000":
+                time.sleep(REFRESH_RATE)
+            else:
+                # play flute sounds
+                SOUND = sound.Sound(
+                    duration=note_hold_extra_time*note_duration, 
+                    pitch=value_map[code], 
+                    volume=flute_vol
+                )
+                SOUND.play()
+                time.sleep(note_duration)
     except BaseException as e:
         print(str(e))
-        p1.kill()
-        p2.kill()
+        if drumProc.is_alive(): drumProc.kill()
         print("end")
