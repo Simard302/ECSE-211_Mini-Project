@@ -22,7 +22,10 @@ hit_factor = 4 #(min 1.0)
 flute_vol = 90
 note_duration = 0.1
 note_hold_extra_time = 3
+
 drum_pattern = "kkc "
+flute_pattern_time = [1, 1, 1, 1, 1/2, 3.5]
+flute_pattern = ["G5", "Gb5", "E5", "D5", "E5", "E5"]
 
 KICK_POWER = 100 #full power kick motor
 CLAP_POWER = 100 #full power clap motor
@@ -64,6 +67,20 @@ def play_drums():
         #play_note(flute_note)
     play_drums()
 
+def playSong(notes_pattern, time_pattern):
+    print('playing notes')
+    for i in range(0, len(notes_pattern)):
+        print(notes_pattern[i], time_pattern[i])
+        note_time = (60/BPM)*time_pattern[i]
+        SOUND = sound.Sound(
+            duration=note_time, 
+            pitch=notes_pattern[i], 
+            volume=flute_vol
+        )
+        SOUND.play()
+        time.sleep(note_time+0.05)
+
+
 flutes = [
     touch1,
     touch2,
@@ -83,8 +100,7 @@ value_map = {
     "1010":"A5",
     "1011":"A5",
     "1100":"G5",
-    "1101":"G5",
-    "1110":"G5"
+    "1101":"G5"
 }
 def readButton(is_pressed, index):
     is_pressed[index] = flutes[index].is_pressed()
@@ -106,6 +122,8 @@ def readFlute():
     
 if __name__ == "__main__":
     drumProc = Process(target = play_drums)
+    song_playing = False
+    curNote = 0
     try:
         while True:
             code = readFlute()
@@ -119,8 +137,29 @@ if __name__ == "__main__":
                     # Start drum process
                     drumProc.start()
                     time.sleep(HOLD_TIME)
+            elif song_playing and code != "1110":
+                print(flute_pattern[curNote], flute_pattern_time[curNote])
+                note_time = (60/BPM)*flute_pattern_time[curNote]
+                SOUND = sound.Sound(
+                    duration=note_time-0.1, 
+                    pitch=flute_pattern[curNote], 
+                    volume=flute_vol
+                )
+                SOUND.play()
+                time.sleep(note_time)
+                if curNote == len(flute_pattern)-1:
+                    curNote = 0
+                else:
+                    curNote += 1
             elif code == "0000":
                 time.sleep(REFRESH_RATE_FREE)
+            elif code == "1110":
+                if song_playing: 
+                    song_playing = False
+                    time.sleep(HOLD_TIME)
+                else:
+                    song_playing = True
+                    time.sleep(HOLD_TIME)
             else:
                 # play flute sounds
                 print(code)
