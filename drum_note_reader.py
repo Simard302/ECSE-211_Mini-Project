@@ -87,6 +87,7 @@ value_map = {
     "1010":"A5",
     "1011":"A5",
     "1100":"G5",
+    "1110":"G5",
     "1101":"G5"
 }
 def readButton(is_pressed, index):
@@ -124,13 +125,6 @@ if __name__ == "__main__":
                     time.sleep(HOLD_TIME)
             elif code == "0000":
                 time.sleep(REFRESH_RATE_FREE)
-            elif code == "1110":
-                if song_playing: 
-                    song_playing = False
-                    time.sleep(HOLD_TIME)
-                else:
-                    song_playing = True
-                    time.sleep(HOLD_TIME)
             else:
                 # play flute sounds
                 print(code)
@@ -140,7 +134,8 @@ if __name__ == "__main__":
                     volume=flute_vol
                 )
                 SOUND.play()
-                time.sleep(max((60/BPM), note_duration))
+                #print(max((60/BPM)/2, note_duration))
+                time.sleep(max((60/BPM)/2, note_duration))
     except BaseException as e:
         print(str(e))
         if drumProc.is_alive(): drumProc.kill()
