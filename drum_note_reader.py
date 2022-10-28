@@ -67,19 +67,6 @@ def play_drums():
         #play_note(flute_note)
     play_drums()
 
-def playSong(notes_pattern, time_pattern):
-    print('playing notes')
-    for i in range(0, len(notes_pattern)):
-        print(notes_pattern[i], time_pattern[i])
-        note_time = (60/BPM)*time_pattern[i]
-        SOUND = sound.Sound(
-            duration=note_time, 
-            pitch=notes_pattern[i], 
-            volume=flute_vol
-        )
-        SOUND.play()
-        time.sleep(note_time+0.05)
-
 
 flutes = [
     touch1,
@@ -88,14 +75,14 @@ flutes = [
     touch4
 ]
 value_map = {
-    "0001":"A4",
-    "0010":"D5",
+    "0001":"G5",
+    "0010":"Gb5",
     "0011":"B4",
-    "0100":"Gb5",
+    "0100":"E5",
     "0101":"Gb5",
     "0110":"E5",
     "0111":"E5",
-    "1000":"A5",
+    "1000":"D5",
     "1001":"A5",
     "1010":"A5",
     "1011":"A5",
@@ -122,8 +109,6 @@ def readFlute():
     
 if __name__ == "__main__":
     drumProc = Process(target = play_drums)
-    song_playing = False
-    curNote = 0
     try:
         while True:
             code = readFlute()
@@ -137,20 +122,6 @@ if __name__ == "__main__":
                     # Start drum process
                     drumProc.start()
                     time.sleep(HOLD_TIME)
-            elif song_playing and code != "1110":
-                print(flute_pattern[curNote], flute_pattern_time[curNote])
-                note_time = (60/BPM)*flute_pattern_time[curNote]
-                SOUND = sound.Sound(
-                    duration=note_time-0.1, 
-                    pitch=flute_pattern[curNote], 
-                    volume=flute_vol
-                )
-                SOUND.play()
-                time.sleep(note_time)
-                if curNote == len(flute_pattern)-1:
-                    curNote = 0
-                else:
-                    curNote += 1
             elif code == "0000":
                 time.sleep(REFRESH_RATE_FREE)
             elif code == "1110":
